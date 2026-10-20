@@ -59,6 +59,12 @@ public class Main implements ModInitializer {
 			PandoricalApi.content().registerModAssets(MOD_ID);
 		}
 
+		// Guarded class load: SpigotTipRegistration names block-tip types directly, so it must
+		// not be touched when that mod is absent.
+		if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("block-tip")) {
+			justfatlard.copper_spigot.integration.SpigotTipRegistration.register();
+		}
+
 		Registry.register(BuiltInRegistries.BLOCK, COPPER_SPIGOT_ID, COPPER_SPIGOT_BLOCK);
 		Registry.register(BuiltInRegistries.ITEM, COPPER_SPIGOT_ID, COPPER_SPIGOT_ITEM);
 

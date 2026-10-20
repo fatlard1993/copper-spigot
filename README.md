@@ -43,6 +43,10 @@ C C
   C
 ```
 
+## Block Tip
+
+With [block-tip](https://github.com/fatlard1993/block-tip) on the server, looking at a spigot says what it would draw and what would happen below: *Water: fills the cauldron*, *Lava: pours below*, *Water: blocked below*, or *Nothing to draw*. The source sits behind a wall or above a ceiling where you cannot see it, so this is the way to tell whether a dry click is the spigot's back or its front. block-tip is optional; without it the spigot works the same.
+
 ## Pandorical
 
 Copper Spigot runs server-side, and Pandorical is required there: the server will not load this mod without it. It ships the spigot's block, item, models and textures through Pandorical's content sync.

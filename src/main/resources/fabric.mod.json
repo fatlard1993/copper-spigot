@@ -24,5 +24,8 @@
     "minecraft": "${minecraftDependency}",
     "java": ">=25",
     "pandorical": ">=15.0.0"
+  },
+  "suggests": {
+    "block-tip": "*"
   }
 }

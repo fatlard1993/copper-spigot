@@ -4,6 +4,9 @@
     "Water is endless, as it is from dripstone. Lava is not: every pour empties the lava it came from."
   ],
   "versions": {
+    "1.1.0": [
+      "With block-tip installed, looking at a spigot says what it would draw and whether the spot below can take it."
+    ],
     "1.0.0": [
       "The copper spigot, from three copper ingots in a hook.",
       "Hangs from the underside of a block, or juts from the side of one with its spout turned down. Never on a floor.",

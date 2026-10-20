@@ -14,7 +14,14 @@ and `fabric.mod.json` (Java).
 |------|---------------|
 | `Main.java` | Entry point; the block, its item, and its Pandorical content sync |
 | `CopperSpigotBlock.java` | Placement and support, the click and the redstone edge, and the pour itself |
+| `integration/SpigotTipRegistration.java` | The block-tip line, read from the same source and plan the pour uses; loaded only when block-tip is |
 | `gametest/SmokeTest.java` | Builds rigs in a real world and checks every pour comes out as it should |
+
+## Optional Integration
+
+block-tip is a compile-only dependency resolved from `../block-tip` (its `gradle.properties` version and
+built jar), declared under `suggests` and registered behind `FabricLoader.isModLoaded("block-tip")`.
+Build block-tip first if the build says its jar is missing.
 
 ## Testing
 

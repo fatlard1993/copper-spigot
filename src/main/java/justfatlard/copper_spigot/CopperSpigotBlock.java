@@ -99,7 +99,26 @@ public class CopperSpigotBlock extends Block {
 	}
 
 	/** A source the spigot can draw on, and whether drawing from it is a cauldron's. */
-	private record Source(Fluid fluid, boolean cauldron) {}
+	public record Source(Fluid fluid, boolean cauldron) {}
+
+	/**
+	 * What a pour of a given fluid would do to the spot under the spout.
+	 *
+	 * <p>Worked out by {@link #planBelow} and nowhere else: the pour carries it out and the
+	 * block-tip line reads it out, so what the card promises is what a click does.
+	 */
+	public enum Plan {
+		/** An empty cauldron filled, or a part-filled water cauldron topped up. */
+		FILL_CAULDRON,
+		/** A waterloggable block takes the water in. */
+		WATERLOG,
+		/** A source block goes down in the space, as from a bucket. */
+		POUR,
+		/** Water poured where water boils off. */
+		EVAPORATE,
+		/** Nowhere for it to go. */
+		BLOCKED
+	}
 
 	public CopperSpigotBlock(Properties settings) {
 		super(settings);
@@ -263,7 +282,11 @@ public class CopperSpigotBlock extends Block {
 		return result;
 	}
 
-	private static @Nullable Source sourceAt(Level level, BlockPos pos) {
+	/**
+	 * What the spigot would draw from {@code pos}, the far side of its support, or null for
+	 * nothing it can draw on.
+	 */
+	public static @Nullable Source sourceAt(Level level, BlockPos pos) {
 		BlockState state = level.getBlockState(pos);
 		if (state.is(Blocks.WATER_CAULDRON) && state.getValue(LayeredCauldronBlock.LEVEL) == LayeredCauldronBlock.MAX_FILL_LEVEL) {
 			return new Source(Fluids.WATER, true);
@@ -280,50 +303,66 @@ public class CopperSpigotBlock extends Block {
 		return null;
 	}
 
-	/** Bucket rules, so a spigot can only pour where a bucket could have. */
+	/** Bucket rules, so a spigot can only pour where a bucket could have. Changes nothing. */
+	public static Plan planBelow(Level level, BlockPos pos, Fluid fluid) {
+		BlockState target = level.getBlockState(pos);
+
+		if (target.is(Blocks.CAULDRON)) return Plan.FILL_CAULDRON;
+		if (target.is(Blocks.WATER_CAULDRON) && fluid == Fluids.WATER
+				&& target.getValue(LayeredCauldronBlock.LEVEL) < LayeredCauldronBlock.MAX_FILL_LEVEL) {
+			return Plan.FILL_CAULDRON;
+		}
+		// Full, or holding something else: a cauldron is never poured over.
+		if (target.getBlock() instanceof AbstractCauldronBlock) return Plan.BLOCKED;
+
+		// Already that very source: pouring changes nothing.
+		if (target.getFluidState().isSourceOfType(fluid)) return Plan.BLOCKED;
+
+		boolean waterlogs = fluid == Fluids.WATER && target.getBlock() instanceof LiquidBlockContainer container
+			&& container.canPlaceLiquid(null, level, pos, target, fluid);
+		if (!target.isAir() && !target.canBeReplaced(fluid) && !waterlogs) return Plan.BLOCKED;
+
+		if (fluid == Fluids.WATER && level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos)) {
+			return Plan.EVAPORATE;
+		}
+		return waterlogs ? Plan.WATERLOG : Plan.POUR;
+	}
+
+	/** Carry out what {@link #planBelow} decided. */
 	private static Pour deliver(ServerLevel level, BlockPos pos, Fluid fluid, @Nullable Player who) {
 		BlockState target = level.getBlockState(pos);
 
-		if (target.is(Blocks.CAULDRON)) {
-			fill(level, pos, fluid == Fluids.LAVA
-				? Blocks.LAVA_CAULDRON.defaultBlockState()
-				: Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, LayeredCauldronBlock.MAX_FILL_LEVEL),
-				fluid, who);
-			return Pour.POURED;
-		}
-		if (target.is(Blocks.WATER_CAULDRON) && fluid == Fluids.WATER
-				&& target.getValue(LayeredCauldronBlock.LEVEL) < LayeredCauldronBlock.MAX_FILL_LEVEL) {
-			fill(level, pos, target.setValue(LayeredCauldronBlock.LEVEL, LayeredCauldronBlock.MAX_FILL_LEVEL), fluid, who);
-			return Pour.POURED;
-		}
-		// Full, or holding something else: a cauldron is never poured over.
-		if (target.getBlock() instanceof AbstractCauldronBlock) return Pour.DRY;
-
-		// Already that very source: pouring changes nothing.
-		if (target.getFluidState().isSourceOfType(fluid)) return Pour.DRY;
-
-		boolean mayReplace = target.canBeReplaced(fluid);
-		LiquidBlockContainer container = target.getBlock() instanceof LiquidBlockContainer c
-			&& c.canPlaceLiquid(who, level, pos, target, fluid) ? c : null;
-		if (!target.isAir() && !mayReplace && container == null) return Pour.DRY;
-
-		if (fluid == Fluids.WATER && level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos)) {
-			RandomSource random = level.getRandom();
-			level.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.5F,
-				2.6F + (random.nextFloat() - random.nextFloat()) * 0.8F);
-			level.sendParticles(ParticleTypes.LARGE_SMOKE, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-				8, 0.25, 0.25, 0.25, 0.0);
-			return Pour.EVAPORATED;
-		}
-
-		if (container != null && fluid == Fluids.WATER) {
-			if (!container.placeLiquid(level, pos, target, Fluids.WATER.getSource(false))) return Pour.DRY;
-		} else {
-			if (mayReplace && !(target.getBlock() instanceof LiquidBlock)) {
-				level.destroyBlock(pos, true);
-			}
-			if (!level.setBlock(pos, fluid.defaultFluidState().createLegacyBlock(), Block.UPDATE_ALL_IMMEDIATE)) {
+		switch (planBelow(level, pos, fluid)) {
+			case BLOCKED -> {
 				return Pour.DRY;
+			}
+			case EVAPORATE -> {
+				RandomSource random = level.getRandom();
+				level.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.5F,
+					2.6F + (random.nextFloat() - random.nextFloat()) * 0.8F);
+				level.sendParticles(ParticleTypes.LARGE_SMOKE, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+					8, 0.25, 0.25, 0.25, 0.0);
+				return Pour.EVAPORATED;
+			}
+			case FILL_CAULDRON -> {
+				fill(level, pos, target.is(Blocks.CAULDRON) && fluid == Fluids.LAVA
+					? Blocks.LAVA_CAULDRON.defaultBlockState()
+					: Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, LayeredCauldronBlock.MAX_FILL_LEVEL),
+					fluid, who);
+				return Pour.POURED;
+			}
+			case WATERLOG -> {
+				if (!((LiquidBlockContainer) target.getBlock()).placeLiquid(level, pos, target, Fluids.WATER.getSource(false))) {
+					return Pour.DRY;
+				}
+			}
+			case POUR -> {
+				if (!target.isAir() && !(target.getBlock() instanceof LiquidBlock)) {
+					level.destroyBlock(pos, true);
+				}
+				if (!level.setBlock(pos, fluid.defaultFluidState().createLegacyBlock(), Block.UPDATE_ALL_IMMEDIATE)) {
+					return Pour.DRY;
+				}
 			}
 		}
 		emptySound(level, pos, fluid, who);

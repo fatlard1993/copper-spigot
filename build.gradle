@@ -18,6 +18,26 @@ dependencies {
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
 	implementation(project(':pandorical'))
+
+	// Optional: block-tip integration, compile-only and never bundled. Resolved by the version
+	// block-tip declares rather than a version written down here, because Gradle never clears
+	// build/libs: a pinned name keeps compiling green against the jar an old build left behind,
+	// a jar that a clean, or a fresh clone, does not have at all.
+	def blockTipProperties = file("../block-tip/gradle.properties")
+	if (blockTipProperties.exists()) {
+		def blockTipVersion = new Properties().with {
+			blockTipProperties.withInputStream { load(it) }
+			getProperty("mod_version")
+		}
+		def blockTipJar = file("../block-tip/build/libs/block-tip-${blockTipVersion}.jar")
+		if (!blockTipJar.exists()) {
+			// Said plainly, because the alternative is javac reporting that BlockTipApi does not
+			// exist: the integration imports it outright, so the jar is only optional at runtime.
+			throw new GradleException("block-tip ${blockTipVersion} is not built. Run `mc-build block-tip`" +
+				" (or ./gradlew build in ../block-tip) first - this mod compiles against its API.")
+		}
+		compileOnly files(blockTipJar)
+	}
 }
 
 // Fabric tests these predicates against the loader's *normalized* game version,
