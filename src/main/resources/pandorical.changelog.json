@@ -1,0 +1,16 @@
+{
+  "overview": [
+    "One block: a copper tap. Hang it under a block or fix it to a wall, and it pours a whole source block of whatever water or lava sits on the far side of that block.",
+    "Water is endless, as it is from dripstone. Lava is not: every pour empties the lava it came from."
+  ],
+  "versions": {
+    "1.0.0": [
+      "The copper spigot, from three copper ingots in a hook.",
+      "Hangs from the underside of a block, or juts from the side of one with its spout turned down. Never on a floor.",
+      "Draws from the block beyond its support: a water or lava source, a waterlogged block, or a full cauldron.",
+      "Pours into the cauldron beneath it, filling it to the brim, or puts a source block down wherever a bucket could.",
+      "Turns on a right-click, or once each time a redstone signal arrives.",
+      "Lava poured is lava gone from the source. Water boils off in the Nether, as a bucket's does."
+    ]
+  }
+}

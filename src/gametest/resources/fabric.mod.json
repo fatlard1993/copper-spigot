@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"id": "copper-spigot-gametest",
+	"version": "1.0.0",
+	"name": "Copper Spigot smoke test",
+	"description": "Loads the mod, joins a world, and pours from a spigot every way it can be set up.",
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"justfatlard.copper_spigot.gametest.SmokeTest"
+		]
+	},
+	"depends": {
+		"copper-spigot-justfatlard": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}

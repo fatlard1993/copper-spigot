@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "copper-spigot-justfatlard:copper_spigot"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "copper-spigot-justfatlard:blocks/copper_spigot"
+}

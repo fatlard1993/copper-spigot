@@ -1,0 +1,64 @@
+{
+  "variants": {
+    "facing=north,hanging=false,powered=false": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall"
+    },
+    "facing=north,hanging=false,powered=true": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall"
+    },
+    "facing=north,hanging=true,powered=false": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung"
+    },
+    "facing=north,hanging=true,powered=true": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung"
+    },
+    "facing=east,hanging=false,powered=false": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall",
+      "y": 90
+    },
+    "facing=east,hanging=false,powered=true": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall",
+      "y": 90
+    },
+    "facing=east,hanging=true,powered=false": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung",
+      "y": 90
+    },
+    "facing=east,hanging=true,powered=true": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung",
+      "y": 90
+    },
+    "facing=south,hanging=false,powered=false": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall",
+      "y": 180
+    },
+    "facing=south,hanging=false,powered=true": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall",
+      "y": 180
+    },
+    "facing=south,hanging=true,powered=false": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung",
+      "y": 180
+    },
+    "facing=south,hanging=true,powered=true": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung",
+      "y": 180
+    },
+    "facing=west,hanging=false,powered=false": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall",
+      "y": 270
+    },
+    "facing=west,hanging=false,powered=true": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall",
+      "y": 270
+    },
+    "facing=west,hanging=true,powered=false": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung",
+      "y": 270
+    },
+    "facing=west,hanging=true,powered=true": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung",
+      "y": 270
+    }
+  }
+}
