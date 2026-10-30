@@ -29,6 +29,8 @@ What it draws lands **directly beneath the spout**:
 
 Water is never used up, as dripstone never uses it up and two buckets already make it endless. **Lava is**: the source block, or the lava cauldron, is emptied by every pour. A spigot moves lava; it never makes it.
 
+A server that would rather have endless lava turns off `lavaUsedUp` in `config/copper-spigot.json`, or flips **Pouring lava uses it up** under the mod's server settings in the Pandorical mod menu (ops only). Then lava is left behind the wall just as water is.
+
 ## Turning It
 
 - **Right-click** it with an empty hand, or with anything that is not a block or a bucket. A held block is placed and a held bucket is used as normal.

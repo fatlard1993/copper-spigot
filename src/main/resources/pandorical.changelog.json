@@ -4,6 +4,9 @@
     "Water is endless, as it is from dripstone. Lava is not: every pour empties the lava it came from."
   ],
   "versions": {
+    "1.1.1": [
+      "A server setting, Pouring lava uses it up, on by default: off, the spigot leaves lava behind the wall as it leaves water."
+    ],
     "1.1.0": [
       "With block-tip installed, looking at a spigot says what it would draw and whether the spot below can take it."
     ],

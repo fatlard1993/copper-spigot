@@ -56,8 +56,8 @@ import org.jspecify.annotations.Nullable;
  * the wall block it is fixed to.
  *
  * <p>Water is not used up, as dripstone does not use it up and as two buckets already make it
- * endless. Lava is: the source, or the lava cauldron, is emptied by the pour, so a spigot moves
- * lava and never makes it.
+ * endless. Lava is, unless the server turns {@link CopperSpigotConfig#lavaUsedUp} off: the source,
+ * or the lava cauldron, is emptied by the pour, so a spigot moves lava and never makes it.
  *
  * <p>It fires on a click, or on the moment a redstone signal arrives. Holding the signal does
  * nothing more; the pour waits for the next rising edge, the way a dispenser does.
@@ -67,6 +67,8 @@ public class CopperSpigotBlock extends Block {
 	public static final EnumProperty<Direction> FACING = HorizontalDirectionalBlock.FACING;
 	public static final BooleanProperty HANGING = BlockStateProperties.HANGING;
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
+
+	static CopperSpigotConfig config = new CopperSpigotConfig();
 
 	/** Ticks between the signal arriving and the pour, as a dispenser waits for its own. */
 	private static final int REDSTONE_DELAY = 2;
@@ -274,7 +276,7 @@ public class CopperSpigotBlock extends Block {
 		switch (result) {
 			case DRY -> dryClick(level, pos);
 			case POURED -> {
-				if (source.fluid() == Fluids.LAVA) consume(level, from, source);
+				if (source.fluid() == Fluids.LAVA && config.lavaUsedUp) consume(level, from, source);
 				spout(level, pos, source.fluid());
 			}
 			case EVAPORATED -> {}

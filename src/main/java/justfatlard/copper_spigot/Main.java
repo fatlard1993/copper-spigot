@@ -46,6 +46,9 @@ public class Main implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		CopperSpigotConfig config = CopperSpigotConfig.load();
+		CopperSpigotBlock.config = config;
+
 		if (PandoricalApi.isAvailable()) {
 			PandoricalApi.content().registerBlock(MOD_ID + ":copper_spigot", new BlockRegistration()
 				// Copper's sound and hardness for the client's stand-in; its shape and states
@@ -57,6 +60,10 @@ public class Main implements ModInitializer {
 			PandoricalApi.content().registerItem(MOD_ID + ":copper_spigot", new ItemRegistration()
 				.model(MOD_ID + ":item/copper_spigot"));
 			PandoricalApi.content().registerModAssets(MOD_ID);
+			PandoricalApi.settings().serverGroup(MOD_ID, "Copper Spigot")
+				.toggle("lavaUsedUp", "Pouring lava uses it up", true)
+				.describe("Off, lava is as endless as water: the source behind the wall stays")
+				.backedBy(player -> config.lavaUsedUp, (player, on) -> config.setLavaUsedUp(on));
 		}
 
 		// Guarded class load: SpigotTipRegistration names block-tip types directly, so it must
