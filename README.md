@@ -33,8 +33,11 @@ A server that would rather have endless lava turns off `lavaUsedUp` in `config/c
 
 ## Turning It
 
-- **Right-click** it with an empty hand, or with anything that is not a block or a bucket. A held block is placed and a held bucket is used as normal.
+- **Right-click** it with an empty hand, or with anything that is not a block or a bucket. A held block is placed and a full bucket is emptied as normal.
+- **Right-click it with an empty bucket** to fill the bucket straight from the tap. Your arm holds the bucket out under the spout while it runs, and nothing lands below. Lava drawn this way is used up just as a pour's is.
 - **Redstone**: it pours once each time a signal arrives. Holding the signal does nothing more; the next pour waits for the next pulse, the way a dispenser does.
+
+Every turn takes a moment: the handle turns open, the fluid runs from the spout, and the handle turns shut. What was drawn lands, or fills the bucket, as the stream ends. A click or a pulse that arrives while the handle is still turning does nothing.
 
 ## Crafting
 
@@ -47,7 +50,7 @@ C C
 
 ## Block Tip
 
-With [block-tip](https://github.com/fatlard1993/block-tip) on the server, looking at a spigot says what it would draw and what would happen below: *Water: fills the cauldron*, *Lava: pours below*, *Water: blocked below*, or *Nothing to draw*. The source sits behind a wall or above a ceiling where you cannot see it, so this is the way to tell whether a dry click is the spigot's back or its front. block-tip is optional; without it the spigot works the same.
+With [block-tip](https://github.com/fatlard1993/block-tip) on the server, looking at a spigot says what it would draw and what would happen below: *Water: fills the cauldron*, *Lava: pours below*, *Water: blocked below*, or *Nothing to draw*. Holding an empty bucket, it says *Water: fills your bucket*. The source sits behind a wall or above a ceiling where you cannot see it, so this is the way to tell whether a dry click is the spigot's back or its front. block-tip is optional; without it the spigot works the same.
 
 ## Pandorical
 

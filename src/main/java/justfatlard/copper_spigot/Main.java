@@ -5,6 +5,7 @@ import justfatlard.pandorical.api.ItemRegistration;
 import justfatlard.pandorical.api.PandoricalApi;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -74,6 +75,8 @@ public class Main implements ModInitializer {
 
 		Registry.register(BuiltInRegistries.BLOCK, COPPER_SPIGOT_ID, COPPER_SPIGOT_BLOCK);
 		Registry.register(BuiltInRegistries.ITEM, COPPER_SPIGOT_ID, COPPER_SPIGOT_ITEM);
+
+		ServerLifecycleEvents.SERVER_STOPPED.register(server -> CopperSpigotBlock.forgetTurns());
 
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries ->
 			entries.accept(COPPER_SPIGOT_ITEM));

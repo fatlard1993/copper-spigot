@@ -1,63 +1,123 @@
 {
   "variants": {
-    "facing=north,hanging=false,powered=false": {
+    "facing=north,hanging=false,turn=0": {
       "model": "copper-spigot-justfatlard:block/copper_spigot_wall"
     },
-    "facing=north,hanging=false,powered=true": {
-      "model": "copper-spigot-justfatlard:block/copper_spigot_wall"
+    "facing=north,hanging=false,turn=1": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall_turn1"
     },
-    "facing=north,hanging=true,powered=false": {
+    "facing=north,hanging=false,turn=2": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall_turn2"
+    },
+    "facing=north,hanging=false,turn=3": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall_turn3"
+    },
+    "facing=north,hanging=true,turn=0": {
       "model": "copper-spigot-justfatlard:block/copper_spigot_hung"
     },
-    "facing=north,hanging=true,powered=true": {
-      "model": "copper-spigot-justfatlard:block/copper_spigot_hung"
+    "facing=north,hanging=true,turn=1": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung_turn1"
     },
-    "facing=east,hanging=false,powered=false": {
+    "facing=north,hanging=true,turn=2": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung_turn2"
+    },
+    "facing=north,hanging=true,turn=3": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung_turn3"
+    },
+    "facing=east,hanging=false,turn=0": {
       "model": "copper-spigot-justfatlard:block/copper_spigot_wall",
       "y": 90
     },
-    "facing=east,hanging=false,powered=true": {
-      "model": "copper-spigot-justfatlard:block/copper_spigot_wall",
+    "facing=east,hanging=false,turn=1": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall_turn1",
       "y": 90
     },
-    "facing=east,hanging=true,powered=false": {
+    "facing=east,hanging=false,turn=2": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall_turn2",
+      "y": 90
+    },
+    "facing=east,hanging=false,turn=3": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall_turn3",
+      "y": 90
+    },
+    "facing=east,hanging=true,turn=0": {
       "model": "copper-spigot-justfatlard:block/copper_spigot_hung",
       "y": 90
     },
-    "facing=east,hanging=true,powered=true": {
-      "model": "copper-spigot-justfatlard:block/copper_spigot_hung",
+    "facing=east,hanging=true,turn=1": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung_turn1",
       "y": 90
     },
-    "facing=south,hanging=false,powered=false": {
+    "facing=east,hanging=true,turn=2": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung_turn2",
+      "y": 90
+    },
+    "facing=east,hanging=true,turn=3": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung_turn3",
+      "y": 90
+    },
+    "facing=south,hanging=false,turn=0": {
       "model": "copper-spigot-justfatlard:block/copper_spigot_wall",
       "y": 180
     },
-    "facing=south,hanging=false,powered=true": {
-      "model": "copper-spigot-justfatlard:block/copper_spigot_wall",
+    "facing=south,hanging=false,turn=1": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall_turn1",
       "y": 180
     },
-    "facing=south,hanging=true,powered=false": {
+    "facing=south,hanging=false,turn=2": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall_turn2",
+      "y": 180
+    },
+    "facing=south,hanging=false,turn=3": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall_turn3",
+      "y": 180
+    },
+    "facing=south,hanging=true,turn=0": {
       "model": "copper-spigot-justfatlard:block/copper_spigot_hung",
       "y": 180
     },
-    "facing=south,hanging=true,powered=true": {
-      "model": "copper-spigot-justfatlard:block/copper_spigot_hung",
+    "facing=south,hanging=true,turn=1": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung_turn1",
       "y": 180
     },
-    "facing=west,hanging=false,powered=false": {
+    "facing=south,hanging=true,turn=2": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung_turn2",
+      "y": 180
+    },
+    "facing=south,hanging=true,turn=3": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung_turn3",
+      "y": 180
+    },
+    "facing=west,hanging=false,turn=0": {
       "model": "copper-spigot-justfatlard:block/copper_spigot_wall",
       "y": 270
     },
-    "facing=west,hanging=false,powered=true": {
-      "model": "copper-spigot-justfatlard:block/copper_spigot_wall",
+    "facing=west,hanging=false,turn=1": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall_turn1",
       "y": 270
     },
-    "facing=west,hanging=true,powered=false": {
+    "facing=west,hanging=false,turn=2": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall_turn2",
+      "y": 270
+    },
+    "facing=west,hanging=false,turn=3": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_wall_turn3",
+      "y": 270
+    },
+    "facing=west,hanging=true,turn=0": {
       "model": "copper-spigot-justfatlard:block/copper_spigot_hung",
       "y": 270
     },
-    "facing=west,hanging=true,powered=true": {
-      "model": "copper-spigot-justfatlard:block/copper_spigot_hung",
+    "facing=west,hanging=true,turn=1": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung_turn1",
+      "y": 270
+    },
+    "facing=west,hanging=true,turn=2": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung_turn2",
+      "y": 270
+    },
+    "facing=west,hanging=true,turn=3": {
+      "model": "copper-spigot-justfatlard:block/copper_spigot_hung_turn3",
       "y": 270
     }
   }

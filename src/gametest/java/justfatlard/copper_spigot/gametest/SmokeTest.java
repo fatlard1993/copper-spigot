@@ -8,7 +8,11 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
@@ -28,6 +32,9 @@ public final class SmokeTest implements FabricClientGameTest {
 	/** Spacing between rigs, wide enough that spreading water never meets the next one. */
 	private static final int APART = 10;
 
+	/** From a signal arriving to the end of the turn it starts, with a tick to spare. */
+	private static final int REDSTONE_POUR = 2 + CopperSpigotBlock.TURN_TICKS + 2;
+
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		Smoke.run(context, Main.MOD_ID, session -> {
@@ -36,8 +43,9 @@ public final class SmokeTest implements FabricClientGameTest {
 			session.onServer(server -> at[0] = session.player().blockPosition().above(24));
 			BlockPos origin = at[0];
 
-			// Hanging, water above the support, an empty cauldron below: a click fills it to the
-			// brim and the water stays where it was.
+			// Hanging, water above the support, an empty cauldron below: a click turns the handle
+			// open, and as it turns shut the cauldron is full to the brim and the water stays where
+			// it was.
 			BlockPos hungWater = origin;
 			session.onServer(server -> {
 				ServerLevel level = server.overworld();
@@ -45,7 +53,22 @@ public final class SmokeTest implements FabricClientGameTest {
 				InteractionResult clicked = spigot.useWithoutItem(level, session.player(),
 					new BlockHitResult(Vec3.atCenterOf(hungWater), Direction.NORTH, hungWater, false));
 				if (!clicked.consumesAction()) throw new AssertionError("clicking the spigot returned " + clicked);
+			});
+			session.waitTicks(6);
+			session.onServer(server -> {
+				ServerLevel level = server.overworld();
+				int turn = level.getBlockState(hungWater).getValue(CopperSpigotBlock.TURN);
+				if (turn != 3) throw new AssertionError("mid-pour the handle stands at turn " + turn + ", not open");
+				if (!level.getBlockState(hungWater.below()).is(Blocks.CAULDRON)) {
+					throw new AssertionError("the cauldron filled before the stream ran out: " + level.getBlockState(hungWater.below()));
+				}
+			});
+			session.waitTicks(CopperSpigotBlock.TURN_TICKS);
+			session.onServer(server -> {
+				ServerLevel level = server.overworld();
 				expectFullWaterCauldron(level, hungWater.below(), "hanging spigot under water");
+				int turn = level.getBlockState(hungWater).getValue(CopperSpigotBlock.TURN);
+				if (turn != 0) throw new AssertionError("after the pour the handle stands at turn " + turn + ", not shut");
 				if (!level.getFluidState(hungWater.above(2)).isSourceOfType(Fluids.WATER)) {
 					throw new AssertionError("pouring water used up the water source; it should be endless");
 				}
@@ -119,7 +142,7 @@ public final class SmokeTest implements FabricClientGameTest {
 			BlockPos wired = origin.south(APART).east(2 * APART);
 			session.onServer(server -> hang(server.overworld(), wired, Blocks.WATER.defaultBlockState(), Blocks.CAULDRON.defaultBlockState()));
 			session.onServer(server -> server.overworld().setBlock(wired.east(), Blocks.REDSTONE_BLOCK.defaultBlockState(), Block.UPDATE_ALL));
-			session.waitTicks(6);
+			session.waitTicks(REDSTONE_POUR);
 			session.onServer(server -> {
 				ServerLevel level = server.overworld();
 				expectFullWaterCauldron(level, wired.below(), "redstone pulse");
@@ -128,7 +151,7 @@ public final class SmokeTest implements FabricClientGameTest {
 				}
 				level.setBlock(wired.below(), Blocks.CAULDRON.defaultBlockState(), Block.UPDATE_ALL);
 			});
-			session.waitTicks(10);
+			session.waitTicks(REDSTONE_POUR);
 			session.onServer(server -> {
 				ServerLevel level = server.overworld();
 				if (!level.getBlockState(wired.below()).is(Blocks.CAULDRON)) {
@@ -138,8 +161,38 @@ public final class SmokeTest implements FabricClientGameTest {
 			});
 			session.waitTicks(2);
 			session.onServer(server -> server.overworld().setBlock(wired.east(), Blocks.REDSTONE_BLOCK.defaultBlockState(), Block.UPDATE_ALL));
-			session.waitTicks(6);
+			session.waitTicks(REDSTONE_POUR);
 			session.onServer(server -> expectFullWaterCauldron(server.overworld(), wired.below(), "second redstone pulse"));
+
+			// An empty bucket held to a spigot over lava, within reach: the bucket comes away full of
+			// lava, the lava is gone from behind the support, and nothing lands below.
+			BlockPos[] near = new BlockPos[1];
+			session.onServer(server -> {
+				ServerLevel level = server.overworld();
+				ServerPlayer player = session.player();
+				near[0] = player.blockPosition().above(2).north(2);
+				BlockState spigot = hang(level, near[0], Blocks.LAVA.defaultBlockState(), Blocks.AIR.defaultBlockState());
+				player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BUCKET));
+				InteractionResult clicked = spigot.useItemOn(player.getMainHandItem(), level, player, InteractionHand.MAIN_HAND,
+					new BlockHitResult(Vec3.atCenterOf(near[0]), Direction.SOUTH, near[0], false));
+				if (!clicked.consumesAction()) throw new AssertionError("an empty bucket on the spigot returned " + clicked);
+			});
+			session.waitTicks(CopperSpigotBlock.TURN_TICKS + 2);
+			session.onServer(server -> {
+				ServerLevel level = server.overworld();
+				ServerPlayer player = session.player();
+				if (!holds(player, Items.LAVA_BUCKET)) {
+					throw new AssertionError("the bucket held to the spigot was not filled: hand holds " + player.getMainHandItem());
+				}
+				if (!level.getBlockState(near[0].above(2)).isAir()) {
+					throw new AssertionError("filling a bucket left the lava source behind: " + level.getBlockState(near[0].above(2)));
+				}
+				if (!level.getBlockState(near[0].below()).isAir()) {
+					throw new AssertionError("filling a bucket also poured below: " + level.getBlockState(near[0].below()));
+				}
+				for (int up = -1; up <= 2; up++) level.setBlock(near[0].above(up), Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+				player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			});
 
 			// Take the support away and the spigot comes off with it.
 			session.onServer(server -> {
@@ -161,6 +214,14 @@ public final class SmokeTest implements FabricClientGameTest {
 		if (!spigot.canSurvive(level, pos)) throw new AssertionError("a hanging spigot cannot hang from stone");
 		level.setBlock(pos, spigot, Block.UPDATE_ALL);
 		return spigot;
+	}
+
+	/** In either hand or anywhere in the inventory: creative keeps the empty bucket and adds the full one. */
+	private static boolean holds(ServerPlayer player, net.minecraft.world.item.Item item) {
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			if (player.getInventory().getItem(slot).is(item)) return true;
+		}
+		return player.getOffhandItem().is(item);
 	}
 
 	private static void expectPour(CopperSpigotBlock.Pour got, CopperSpigotBlock.Pour wanted, String what) {

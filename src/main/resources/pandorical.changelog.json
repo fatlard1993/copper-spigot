@@ -4,6 +4,11 @@
     "Water is endless, as it is from dripstone. Lava is not: every pour empties the lava it came from."
   ],
   "versions": {
+    "1.2.0": [
+      "An empty bucket right-clicked on a spigot is filled straight from it, the arm held out under the spout while it runs.",
+      "The handle turns open and shut on every pour, and the fluid runs from the spout before it lands.",
+      "With block-tip, holding an empty bucket says the spigot would fill it."
+    ],
     "1.1.1": [
       "A server setting, Pouring lava uses it up, on by default: off, the spigot leaves lava behind the wall as it leaves water."
     ],

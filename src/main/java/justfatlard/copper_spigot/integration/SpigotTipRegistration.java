@@ -3,6 +3,7 @@ package justfatlard.copper_spigot.integration;
 import justfatlard.block_tip.api.BlockTipApi;
 import justfatlard.copper_spigot.CopperSpigotBlock;
 import justfatlard.copper_spigot.Main;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.material.Fluids;
 
 /**
@@ -26,6 +27,8 @@ public final class SpigotTipRegistration {
 			if (source == null) return "Nothing to draw";
 
 			String fluid = source.fluid() == Fluids.LAVA ? "Lava" : "Water";
+			// The hand a click tries first: an empty bucket there is filled, whatever is below.
+			if (player != null && player.getMainHandItem().is(Items.BUCKET)) return fluid + ": fills your bucket";
 			return fluid + ": " + switch (CopperSpigotBlock.planBelow(level, pos.below(), source.fluid())) {
 				case FILL_CAULDRON -> "fills the cauldron";
 				case WATERLOG -> "waterlogs below";

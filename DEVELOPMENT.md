@@ -30,7 +30,9 @@ hanging and wall spigots, water and lava, cauldrons in and out, and the redstone
 
 ## Art
 
-`generate_models.py` writes the two block models and the blockstate; its boxes are the same
-numbers as the outline shapes in `CopperSpigotBlock.java`, so change both together.
+`generate_models.py` writes the block models, wall and hanging, each in four turns of the handle
+(the block's `turn` property), and the blockstate; its boxes are the same numbers as the outline
+shapes in `CopperSpigotBlock.java`, so change both together. The player's arm held out to the spout
+is `animations/hold_bucket_{right,left}.json`, played through Pandorical's animation API.
 `generate_textures.py` and `generate_icon.py` cut the block texture, item sprite and icon out of
 the vanilla jar's copper. All three are deterministic; re-run them after a Minecraft version bump.

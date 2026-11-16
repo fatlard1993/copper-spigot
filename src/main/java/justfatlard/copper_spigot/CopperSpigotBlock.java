@@ -1,22 +1,31 @@
 package justfatlard.copper_spigot;
 
+import java.util.HashMap;
 import java.util.Map;
+
+import justfatlard.pandorical.api.PandoricalApi;
+import net.minecraft.core.GlobalPos;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUtils;
+import net.minecraft.world.item.Items;
+import net.minecraft.stats.Stats;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -36,6 +45,7 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluid;
@@ -61,17 +71,62 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>It fires on a click, or on the moment a redstone signal arrives. Holding the signal does
  * nothing more; the pour waits for the next rising edge, the way a dispenser does.
+ *
+ * <p>Either way the handle turns open, the fluid runs from the spout for a moment, and the handle
+ * turns shut: what was drawn lands as the stream ends. An empty bucket held to it is filled
+ * instead, the player's arm held out under the spout while it runs.
  */
 public class CopperSpigotBlock extends Block {
 	/** Out of the wall for a wall spigot; only turns the handle on a hanging one. */
 	public static final EnumProperty<Direction> FACING = HorizontalDirectionalBlock.FACING;
 	public static final BooleanProperty HANGING = BlockStateProperties.HANGING;
 	public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
+	/** How far the handle has turned, in the model's steps of 30 degrees: 0 shut, 3 open. */
+	public static final IntegerProperty TURN = IntegerProperty.create("turn", 0, 3);
 
 	static CopperSpigotConfig config = new CopperSpigotConfig();
 
-	/** Ticks between the signal arriving and the pour, as a dispenser waits for its own. */
+	/** Ticks between the signal arriving and the handle starting to turn, as a dispenser waits for its own. */
 	private static final int REDSTONE_DELAY = 2;
+
+	/**
+	 * The handle's position on each tick of a turn, one tick a frame: three to open, the stream
+	 * running while it stands open, two to close. The last frame is the one the stream ends on.
+	 */
+	private static final int[] FRAMES = {0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 0};
+	/** The handle is fully open and the stream starts. */
+	private static final int STREAM_STARTS = 3;
+	/** The last tick of the stream, when what it carried lands: below, or in the bucket. */
+	private static final int STREAM_ENDS = 14;
+
+	/** Ticks from a click to the end of a turn, for the tests to wait out. */
+	public static final int TURN_TICKS = FRAMES.length - 1;
+
+	/** Spigots part way through a turn. Not saved: a turn cut off by a restart is closed on its next tick. */
+	private static final Map<GlobalPos, Turning> TURNING = new HashMap<>();
+
+	/** Forget every turn, so a world reopened in the same game does not find stale ones. */
+	static void forgetTurns() {
+		TURNING.clear();
+	}
+
+	/**
+	 * One turn of the handle in progress.
+	 *
+	 * @param filling who is holding an empty bucket to it, or null for a pour below
+	 */
+	private static final class Turning {
+		final @Nullable Filling filling;
+		int frame;
+		/** Decided as the handle opens: whether anything is coming out, and so whether it streams. */
+		@Nullable Fluid running;
+
+		Turning(@Nullable Filling filling) {
+			this.filling = filling;
+		}
+	}
+
+	private record Filling(Player player, InteractionHand hand) {}
 
 	// Each shape is the matching model in assets/.../models/block, box for box, facing north;
 	// generate_models.py writes the models from the same numbers.
@@ -127,12 +182,13 @@ public class CopperSpigotBlock extends Block {
 		this.registerDefaultState(this.stateDefinition.any()
 			.setValue(FACING, Direction.NORTH)
 			.setValue(HANGING, false)
-			.setValue(POWERED, false));
+			.setValue(POWERED, false)
+			.setValue(TURN, 0));
 	}
 
 	@Override
 	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-		builder.add(FACING, HANGING, POWERED);
+		builder.add(FACING, HANGING, POWERED, TURN);
 	}
 
 	// --- Attachment -------------------------------------------------------------------------
@@ -219,7 +275,14 @@ public class CopperSpigotBlock extends Block {
 	@Override
 	protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
 			Player player, InteractionHand hand, BlockHitResult hit) {
-		// A block in hand is being placed, and a bucket is being filled or emptied: both are the
+		// An empty bucket is held under the spout and filled from it.
+		if (stack.is(Items.BUCKET)) {
+			if (level instanceof ServerLevel serverLevel) {
+				startTurn(serverLevel, pos, new Filling(player, hand), 1);
+			}
+			return InteractionResult.SUCCESS;
+		}
+		// A block in hand is being placed, and a full bucket is being emptied: both are the
 		// item's business, not the tap's. Anything else turns the tap.
 		if (stack.getItem() instanceof BlockItem || stack.getItem() instanceof BucketItem) {
 			return InteractionResult.PASS;
@@ -231,7 +294,7 @@ public class CopperSpigotBlock extends Block {
 	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
 			BlockHitResult hit) {
 		if (level instanceof ServerLevel serverLevel) {
-			pour(serverLevel, pos, state, player);
+			startTurn(serverLevel, pos, null, 1);
 		}
 		return InteractionResult.SUCCESS;
 	}
@@ -239,7 +302,7 @@ public class CopperSpigotBlock extends Block {
 	@Override
 	protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block,
 			@Nullable Orientation orientation, boolean movedByPiston) {
-		if (level.isClientSide()) return;
+		if (!(level instanceof ServerLevel serverLevel)) return;
 
 		boolean signal = level.hasNeighborSignal(pos);
 		if (signal == state.getValue(POWERED)) return;
@@ -247,13 +310,131 @@ public class CopperSpigotBlock extends Block {
 		// Remembered on the state so a held signal is one pour, not one a tick.
 		level.setBlock(pos, state.setValue(POWERED, signal), Block.UPDATE_CLIENTS);
 		if (signal) {
-			level.scheduleTick(pos, this, REDSTONE_DELAY);
+			startTurn(serverLevel, pos, null, REDSTONE_DELAY);
 		}
+	}
+
+	/**
+	 * Set the handle turning, its first frame {@code delay} ticks off. A spigot already turning
+	 * ignores the call: one hand on the tap at a time, and a pulse that arrives mid-turn is spent.
+	 */
+	private void startTurn(ServerLevel level, BlockPos pos, @Nullable Filling filling, int delay) {
+		GlobalPos key = GlobalPos.of(level.dimension(), pos.immutable());
+		if (TURNING.containsKey(key)) return;
+
+		TURNING.put(key, new Turning(filling));
+		level.scheduleTick(pos, this, delay);
+		if (filling != null) holdOut(filling);
 	}
 
 	@Override
 	protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
-		pour(level, pos, state, null);
+		GlobalPos key = GlobalPos.of(level.dimension(), pos);
+		Turning turning = TURNING.get(key);
+		if (turning == null) {
+			// Left part open by a restart: nothing is running, so just shut it.
+			if (state.getValue(TURN) != 0) level.setBlock(pos, state.setValue(TURN, 0), Block.UPDATE_CLIENTS);
+			return;
+		}
+
+		int frame = ++turning.frame;
+		int turn = FRAMES[frame];
+		if (state.getValue(TURN) != turn) {
+			state = state.setValue(TURN, turn);
+			level.setBlock(pos, state, Block.UPDATE_CLIENTS);
+		}
+
+		if (frame == 1) handleSound(level, pos, SoundEvents.COPPER_BULB_TURN_ON);
+		if (frame == STREAM_ENDS + 1) handleSound(level, pos, SoundEvents.COPPER_BULB_TURN_OFF);
+		if (frame == STREAM_STARTS) {
+			turning.running = willRun(level, pos, state, turning.filling);
+			if (turning.running == null) dryClick(level, pos);
+		}
+		if (turning.running != null && frame >= STREAM_STARTS && frame <= STREAM_ENDS) {
+			stream(level, pos, state, turning.running);
+		}
+		if (frame == STREAM_ENDS && turning.running != null) {
+			Filling filling = turning.filling;
+			if (filling != null && stillHolding(level, pos, filling)) {
+				fillBucket(level, pos, state, filling);
+			} else {
+				pour(level, pos, state, filling == null ? null : filling.player());
+			}
+		}
+
+		if (frame == FRAMES.length - 1) {
+			TURNING.remove(key);
+			if (turning.filling != null) letDown(turning.filling);
+		} else {
+			level.scheduleTick(pos, this, 1);
+		}
+	}
+
+	@Override
+	protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+		Turning turning = TURNING.remove(GlobalPos.of(level.dimension(), pos));
+		if (turning != null && turning.filling != null) letDown(turning.filling);
+	}
+
+	/** What would come out if the handle opened now, or null for nothing. Changes nothing. */
+	private static @Nullable Fluid willRun(ServerLevel level, BlockPos pos, BlockState state, @Nullable Filling filling) {
+		Source source = sourceAt(level, sourcePos(state, pos));
+		if (source == null) return null;
+		if (filling != null && stillHolding(level, pos, filling)) return source.fluid();
+		return planBelow(level, pos.below(), source.fluid()) == Plan.BLOCKED ? null : source.fluid();
+	}
+
+	// --- The bucket -------------------------------------------------------------------------
+
+	/** The bucket is still empty, in the hand that held it out, within reach of the spout. */
+	private static boolean stillHolding(ServerLevel level, BlockPos pos, Filling filling) {
+		Player player = filling.player();
+		return player.isAlive() && !player.isRemoved() && player.level() == level
+			&& player.getItemInHand(filling.hand()).is(Items.BUCKET)
+			&& player.isWithinBlockInteractionRange(pos, 1.0);
+	}
+
+	/**
+	 * Draw one source block into the bucket held out to the spout. Lava is used up by the same
+	 * rule as a pour; water is not.
+	 *
+	 * <p>Public so the gametest drives exactly what the end of a bucket turn does.
+	 */
+	public static Pour fillBucket(ServerLevel level, BlockPos pos, BlockState state, Player player, InteractionHand hand) {
+		return fillBucket(level, pos, state, new Filling(player, hand));
+	}
+
+	private static Pour fillBucket(ServerLevel level, BlockPos pos, BlockState state, Filling filling) {
+		BlockPos from = sourcePos(state, pos);
+		Source source = sourceAt(level, from);
+		if (source == null) {
+			dryClick(level, pos);
+			return Pour.DRY;
+		}
+
+		Player player = filling.player();
+		ItemStack held = player.getItemInHand(filling.hand());
+		player.setItemInHand(filling.hand(), ItemUtils.createFilledResult(held, player, new ItemStack(source.fluid().getBucket())));
+		player.awardStat(Stats.ITEM_USED.get(Items.BUCKET));
+
+		if (source.fluid() == Fluids.LAVA && config.lavaUsedUp) consume(level, from, source);
+		level.playSound(null, pos, source.fluid() == Fluids.LAVA ? SoundEvents.BUCKET_FILL_LAVA : SoundEvents.BUCKET_FILL,
+			SoundSource.BLOCKS, 1.0F, 1.0F);
+		level.gameEvent(player, GameEvent.FLUID_PICKUP, pos);
+		return Pour.POURED;
+	}
+
+	/** The bucket's arm raised to the spout, for everyone watching. */
+	private static void holdOut(Filling filling) {
+		if (!PandoricalApi.isAvailable()) return;
+		Player player = filling.player();
+		HumanoidArm arm = filling.hand() == InteractionHand.MAIN_HAND ? player.getMainArm() : player.getMainArm().getOpposite();
+		PandoricalApi.animations().play(player,
+			Main.MOD_ID + ":hold_bucket_" + (arm == HumanoidArm.RIGHT ? "right" : "left"), false);
+	}
+
+	private static void letDown(Filling filling) {
+		if (PandoricalApi.isAvailable()) PandoricalApi.animations().stop(filling.player());
 	}
 
 	// --- The pour ---------------------------------------------------------------------------
@@ -393,6 +574,18 @@ public class CopperSpigotBlock extends Block {
 			level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
 			level.gameEvent(null, GameEvent.FLUID_PICKUP, pos);
 		}
+	}
+
+	/** One tick of the stream running from the spout while the handle stands open. */
+	private static void stream(ServerLevel level, BlockPos pos, BlockState state, Fluid fluid) {
+		// The bottom of the nozzle, which sits lower on a wall spigot than on a hanging one.
+		double mouth = state.getValue(HANGING) ? 5 / 16.0 : 3 / 16.0;
+		SimpleParticleType falling = fluid == Fluids.LAVA ? ParticleTypes.FALLING_LAVA : ParticleTypes.FALLING_WATER;
+		level.sendParticles(falling, pos.getX() + 0.5, pos.getY() + mouth - 0.02, pos.getZ() + 0.5, 3, 0.04, 0.01, 0.04, 0.0);
+	}
+
+	private static void handleSound(ServerLevel level, BlockPos pos, SoundEvent sound) {
+		level.playSound(null, pos, sound, SoundSource.BLOCKS, 0.35F, 1.4F);
 	}
 
 	/** A few drops off the spout as it pours. */
