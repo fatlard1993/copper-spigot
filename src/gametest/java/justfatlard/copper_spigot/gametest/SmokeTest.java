@@ -15,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluids;
@@ -192,6 +193,41 @@ public final class SmokeTest implements FabricClientGameTest {
 				}
 				for (int up = -1; up <= 2; up++) level.setBlock(near[0].above(up), Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
 				player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			});
+
+			// Hung from a waterlogged copper grate with nothing behind it: the grate's own water is
+			// drawn, and the grate stays full.
+			BlockPos grate = origin.south(2 * APART);
+			session.onServer(server -> {
+				ServerLevel level = server.overworld();
+				BlockState spigot = hang(level, grate, Blocks.AIR.defaultBlockState(), Blocks.CAULDRON.defaultBlockState());
+				level.setBlock(grate.above(), Blocks.COPPER_GRATE.weathering().unaffected().defaultBlockState()
+					.setValue(BlockStateProperties.WATERLOGGED, true), Block.UPDATE_ALL);
+				if (!spigot.canSurvive(level, grate)) throw new AssertionError("a hanging spigot cannot hang from a copper grate");
+				expectPour(CopperSpigotBlock.pour(level, grate, spigot, null), CopperSpigotBlock.Pour.POURED, "waterlogged grate");
+				expectFullWaterCauldron(level, grate.below(), "hanging from a waterlogged grate");
+				if (!level.getFluidState(grate.above()).isSourceOfType(Fluids.WATER)) {
+					throw new AssertionError("drawing from a waterlogged grate emptied it: " + level.getBlockState(grate.above()));
+				}
+			});
+
+			// On the side of a waterlogged grate, with dry stone behind it: the side face draws from the
+			// grate just as the bottom face does.
+			BlockPos grateWall = origin.south(2 * APART).east(APART);
+			session.onServer(server -> {
+				ServerLevel level = server.overworld();
+				level.setBlock(grateWall.south(), Blocks.COPPER_GRATE.weathering().unaffected().defaultBlockState()
+					.setValue(BlockStateProperties.WATERLOGGED, true), Block.UPDATE_ALL);
+				level.setBlock(grateWall.south(2), Blocks.STONE.defaultBlockState(), Block.UPDATE_ALL);
+				level.setBlock(grateWall.below(), Blocks.CAULDRON.defaultBlockState(), Block.UPDATE_ALL);
+				BlockState spigot = Main.COPPER_SPIGOT_BLOCK.defaultBlockState()
+					.setValue(CopperSpigotBlock.HANGING, false)
+					.setValue(CopperSpigotBlock.FACING, Direction.NORTH);
+				if (!spigot.canSurvive(level, grateWall)) throw new AssertionError("a wall spigot cannot hold onto a copper grate");
+				level.setBlock(grateWall, spigot, Block.UPDATE_ALL);
+				expectPour(CopperSpigotBlock.pour(level, grateWall, spigot, null), CopperSpigotBlock.Pour.POURED,
+					"wall spigot on a waterlogged grate");
+				expectFullWaterCauldron(level, grateWall.below(), "on the side of a waterlogged grate");
 			});
 
 			// Take the support away and the spigot comes off with it.

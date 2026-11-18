@@ -63,7 +63,8 @@ import org.jspecify.annotations.Nullable;
  * <p>Dripstone's rule, made deliberate: what it draws from is the fluid on the far side of the
  * block it hangs from, and what it pours lands directly beneath it. A hanging spigot at P is held
  * by P+up and draws from P+2up; a wall spigot facing out of a wall draws from the block behind
- * the wall block it is fixed to.
+ * the wall block it is fixed to. A support that holds fluid itself, like a waterlogged grate, is
+ * drawn from directly, from whichever face the spigot is on.
  *
  * <p>Water is not used up, as dripstone does not use it up and as two buckets already make it
  * endless. Lava is, unless the server turns {@link CopperSpigotConfig#lavaUsedUp} off: the source,
@@ -202,9 +203,13 @@ public class CopperSpigotBlock extends Block {
 		return pos.relative(towardSupport(state));
 	}
 
-	/** The far side of the support, which is where the fluid has to be. */
-	public static BlockPos sourcePos(BlockState state, BlockPos pos) {
-		return pos.relative(towardSupport(state), 2);
+	/**
+	 * Where the fluid is drawn from: the support itself when it holds something to draw, as a
+	 * waterlogged copper grate does, and otherwise the far side of the support.
+	 */
+	public static BlockPos sourcePos(Level level, BlockState state, BlockPos pos) {
+		BlockPos support = supportPos(state, pos);
+		return sourceAt(level, support) != null ? support : pos.relative(towardSupport(state), 2);
 	}
 
 	@Override
@@ -378,7 +383,7 @@ public class CopperSpigotBlock extends Block {
 
 	/** What would come out if the handle opened now, or null for nothing. Changes nothing. */
 	private static @Nullable Fluid willRun(ServerLevel level, BlockPos pos, BlockState state, @Nullable Filling filling) {
-		Source source = sourceAt(level, sourcePos(state, pos));
+		Source source = sourceAt(level, sourcePos(level, state, pos));
 		if (source == null) return null;
 		if (filling != null && stillHolding(level, pos, filling)) return source.fluid();
 		return planBelow(level, pos.below(), source.fluid()) == Plan.BLOCKED ? null : source.fluid();
@@ -405,7 +410,7 @@ public class CopperSpigotBlock extends Block {
 	}
 
 	private static Pour fillBucket(ServerLevel level, BlockPos pos, BlockState state, Filling filling) {
-		BlockPos from = sourcePos(state, pos);
+		BlockPos from = sourcePos(level, state, pos);
 		Source source = sourceAt(level, from);
 		if (source == null) {
 			dryClick(level, pos);
@@ -445,7 +450,7 @@ public class CopperSpigotBlock extends Block {
 	 * <p>Public so the gametest drives exactly what a click or a signal does.
 	 */
 	public static Pour pour(ServerLevel level, BlockPos pos, BlockState state, @Nullable Player who) {
-		BlockPos from = sourcePos(state, pos);
+		BlockPos from = sourcePos(level, state, pos);
 		Source source = sourceAt(level, from);
 		if (source == null) {
 			dryClick(level, pos);

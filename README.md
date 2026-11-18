@@ -17,6 +17,8 @@ Think of pointed dripstone, made deliberate. A spigot draws from whatever is on 
 - a lava source
 - a full water cauldron, or a lava cauldron
 
+If the block it is fixed to holds fluid itself, such as a waterlogged copper grate, the spigot draws from that block instead, whichever face it is on.
+
 Flowing water and flowing lava are not sources.
 
 What it draws lands **directly beneath the spout**:

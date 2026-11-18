@@ -23,7 +23,7 @@ public final class SpigotTipRegistration {
 		BlockTipApi.describe((level, pos, state, player) -> {
 			if (!state.is(Main.COPPER_SPIGOT_BLOCK)) return null;
 
-			CopperSpigotBlock.Source source = CopperSpigotBlock.sourceAt(level, CopperSpigotBlock.sourcePos(state, pos));
+			CopperSpigotBlock.Source source = CopperSpigotBlock.sourceAt(level, CopperSpigotBlock.sourcePos(level, state, pos));
 			if (source == null) return "Nothing to draw";
 
 			String fluid = source.fluid() == Fluids.LAVA ? "Lava" : "Water";

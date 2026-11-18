@@ -4,6 +4,9 @@
     "Water is endless, as it is from dripstone. Lava is not: every pour empties the lava it came from."
   ],
   "versions": {
+    "1.2.1": [
+      "A spigot fixed to a waterlogged block, such as a copper grate, draws the water in that block, from its side as well as its underside."
+    ],
     "1.2.0": [
       "An empty bucket right-clicked on a spigot is filled straight from it, the arm held out under the spout while it runs.",
       "The handle turns open and shut on every pour, and the fluid runs from the spout before it lands.",
