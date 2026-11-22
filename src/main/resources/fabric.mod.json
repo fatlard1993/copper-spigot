@@ -3,7 +3,7 @@
   "id": "copper-spigot-justfatlard",
   "version": "${version}",
   "name": "Copper Spigot",
-  "description": "A copper tap that pours a whole source block of the water or lava behind its wall, on a click or a redstone pulse",
+  "description": "A copper tap that pours the water or lava behind its wall",
   "authors": [
     "justfatlard"
   ],
